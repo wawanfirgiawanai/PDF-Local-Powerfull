@@ -1,0 +1,18 @@
+# Pasang PyTorch versi CUDA terlebih dahulu, sesuai GPU Anda:
+#   https://pytorch.org/get-started/locally/
+# (RTX seri 50xx membutuhkan build CUDA 12.8 atau lebih baru)
+torch
+torchvision
+# Versi mengikuti README resmi baidu/Unlimited-OCR
+transformers==4.52.1
+huggingface-hub==0.36.0
+tokenizers==0.21.4
+addict==2.4.0
+einops==0.8.2
+easydict==1.13
+pillow
+requests
+# Kernel atensi model memakai Triton (tl.make_block_ptr), yang dihapus di Triton 3.8+.
+# Pakai versi yang sesuai dengan PyTorch Anda (3.7 untuk torch 2.11). Di Windows: triton-windows.
+triton<3.8; platform_system != "Windows"
+triton-windows<3.8; platform_system == "Windows"
