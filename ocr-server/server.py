@@ -23,8 +23,10 @@ API:
 """
 import argparse
 import base64
+import contextlib
 import io
 import json
+import os
 import sys
 import threading
 import time
@@ -33,6 +35,23 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MAX_BODY = 512 * 1024 * 1024  # 512 MB
 PAGE_TOKEN = '<PAGE>'
+VERBOSE = False  # --verbose: tampilkan log debug bawaan kode model
+
+
+def log(msg):
+    """Pesan server; selalu tampil walau stdout model sedang dibisukan."""
+    sys.__stdout__.write(msg + '\n')
+    sys.__stdout__.flush()
+
+
+@contextlib.contextmanager
+def quiet():
+    """Bisukan print() debug dari kode model ([PageRope], [DASH], ...) kecuali --verbose."""
+    if VERBOSE:
+        yield
+        return
+    with open(os.devnull, 'w', encoding='utf-8') as sink, contextlib.redirect_stdout(sink):
+        yield
 
 
 def decode_image(item):
@@ -65,25 +84,27 @@ class TransformersBackend:
                 'Pasang PyTorch CUDA dari https://pytorch.org/get-started/locally/ atau jalankan '
                 'dengan --backend demo untuk mencoba antarmuka.')
         self.model_name = model_name
-        print(f'[ocr] Memuat {model_name} ke {torch.cuda.get_device_name(0)} ...', flush=True)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        self.model = AutoModel.from_pretrained(
-            model_name, trust_remote_code=True, use_safetensors=True,
-            torch_dtype=torch.bfloat16).eval().cuda()
+        log(f'[ocr] Memuat {model_name} ke {torch.cuda.get_device_name(0)} ...')
+        with quiet():
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            self.model = AutoModel.from_pretrained(
+                model_name, trust_remote_code=True, use_safetensors=True,
+                torch_dtype=torch.bfloat16).eval().cuda()
         self.torch = torch
-        print('[ocr] Model siap.', flush=True)
+        log('[ocr] Model siap.')
 
     def ocr(self, images, crop_mode):
         pil = [decode_image(x) for x in images]
         try:
-            text = self.model.infer(
-                self.tokenizer,
-                image_file=pil if len(pil) > 1 else pil[0],
-                crop_mode=crop_mode,          # None = otomatis (gundam utk 1 halaman, base utk banyak)
-                eval_mode=True,               # jangan streaming ke stdout
-                no_repeat_ngram_size=35,      # sama dengan setelan evaluasi resmi
-                ngram_window=1024 if len(pil) > 1 else 128,
-            )
+            with quiet():
+                text = self.model.infer(
+                    self.tokenizer,
+                    image_file=pil if len(pil) > 1 else pil[0],
+                    crop_mode=crop_mode,          # None = otomatis (gundam utk 1 halaman, base utk banyak)
+                    eval_mode=True,               # jangan streaming ke stdout
+                    no_repeat_ngram_size=35,      # sama dengan setelan evaluasi resmi
+                    ngram_window=1024 if len(pil) > 1 else 128,
+                )
         finally:
             self.torch.cuda.empty_cache()
         return text
@@ -103,8 +124,8 @@ class SGLangBackend:
             self.ngram = DeepseekOCRNoRepeatNGramLogitProcessor.to_str()
         except Exception:
             self.ngram = None
-            print('[ocr] Peringatan: sglang tidak terpasang di lingkungan ini; '
-                  'n-gram logit processor tidak dipakai.', flush=True)
+            log('[ocr] Peringatan: sglang tidak terpasang di lingkungan ini; '
+                'n-gram logit processor tidak dipakai.')
 
     def ocr(self, images, crop_mode, tokens_per_page=8000):
         n = len(images)
@@ -206,10 +227,11 @@ def make_handler(backend, lock):
                 if crop_mode not in (True, False, None):
                     crop_mode = None
                 t0 = time.time()
+                log(f'[ocr] Memproses {len(images)} halaman ...')
                 with lock:  # satu GPU: proses permintaan satu per satu
                     text = backend.ocr(images, crop_mode)
                 dt = time.time() - t0
-                print(f'[ocr] {len(images)} halaman selesai dalam {dt:.1f} dtk', flush=True)
+                log(f'[ocr] {len(images)} halaman selesai dalam {dt:.1f} dtk')
                 self._json(200, {'text': normalize_pages(text, len(images)),
                                  'pages': len(images), 'seconds': round(dt, 2)})
             except Exception as e:  # noqa: BLE001
@@ -232,7 +254,10 @@ def main():
     ap.add_argument('--sglang-model', default='Unlimited-OCR-2', help='--served-model-name pada server SGLang')
     ap.add_argument('--host', default='127.0.0.1')
     ap.add_argument('--port', type=int, default=8000)
+    ap.add_argument('--verbose', action='store_true', help='tampilkan log debug bawaan kode model')
     args = ap.parse_args()
+    global VERBOSE
+    VERBOSE = args.verbose
 
     if args.backend == 'transformers':
         backend = TransformersBackend(args.model)
@@ -242,11 +267,11 @@ def main():
         backend = DemoBackend()
 
     httpd = ThreadingHTTPServer((args.host, args.port), make_handler(backend, threading.Lock()))
-    print(f'[ocr] Server {backend.name} berjalan di http://{args.host}:{args.port}  (Ctrl+C untuk berhenti)', flush=True)
+    log(f'[ocr] Server {backend.name} berjalan di http://{args.host}:{args.port}  (Ctrl+C untuk berhenti)')
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print('\n[ocr] Berhenti.')
+        log('\n[ocr] Berhenti.')
 
 
 if __name__ == '__main__':

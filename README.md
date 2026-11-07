@@ -127,6 +127,7 @@ Server berjalan di `http://127.0.0.1:8000`. Buka tab **PDF → Markdown**, klik 
 | `--backend demo` | tanpa model dan tanpa GPU — mengembalikan contoh keluaran untuk mencoba antarmuka. |
 | `--host`, `--port` | alamat server (bawaan `127.0.0.1:8000`). Isi alamat yang sama di kolom *Alamat server* pada aplikasi. |
 | `--model` | ID model Hugging Face atau folder lokal (bawaan `baidu/Unlimited-OCR-2`). |
+| `--verbose` | tampilkan log debug bawaan kode model (`[PageRope]`, `[DASH]`, …). Tanpa opsi ini log disembunyikan agar jendela server tetap ringkas. |
 
 > Server dapat dijalankan di komputer lain (mis. server lab ber-GPU) dengan `--host 0.0.0.0`; isi alamat IP komputer tersebut di aplikasi. Lakukan ini hanya di jaringan yang tepercaya.
 

@@ -27,6 +27,15 @@ Panduan ini untuk komputer yang **sudah terpasang** semua kebutuhannya. Anda tid
 
 > Jangan tutup jendela hitam selama OCR berjalan — itulah server yang menjalankan model.
 
+Selama OCR berjalan, jendela hitam hanya menampilkan baris singkat seperti:
+
+```
+[ocr] Memproses 1 halaman ...
+[ocr] 1 halaman selesai dalam 18.4 dtk
+```
+
+Butuh log teknis lengkap dari model (untuk mencari kesalahan)? Jalankan `Jalankan-Server-OCR.bat --verbose` dari Command Prompt. Baris seperti `[PageRope]`, `[DASH]`, atau `ok=False` di log itu adalah catatan diagnostik bawaan model, **bukan** galat.
+
 ---
 
 ## Pengaturan
