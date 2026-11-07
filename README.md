@@ -1,6 +1,6 @@
 # PDF Combine
 
-**Aplikasi web untuk menggabungkan, mengatur, menandatangani, memberi highlight, dan meng-OCR PDF menjadi Markdown — langsung di browser, tanpa mengunggah berkas ke server pihak ketiga.**
+**Aplikasi web untuk menggabungkan, mengatur, menandatangani, dan memberi highlight pada PDF — langsung di browser, tanpa mengunggah berkas ke server mana pun.**
 
 ![HTML5](https://img.shields.io/badge/HTML5-single%20file-E34F26?logo=html5&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black)
@@ -15,7 +15,6 @@ PDF Combine adalah aplikasi satu berkas (`index.html`) yang berjalan sepenuhnya 
 
 - [Fitur](#fitur)
 - [Cara Menjalankan](#cara-menjalankan)
-- [Menjalankan Server OCR](#menjalankan-server-ocr)
 - [Panduan Penggunaan](#panduan-penggunaan)
 - [Teknologi](#teknologi)
 - [Privasi & Keamanan](#privasi--keamanan)
@@ -54,16 +53,8 @@ PDF Combine adalah aplikasi satu berkas (`index.html`) yang berjalan sepenuhnya 
 - Batalkan (**Ctrl+Z**) dan hapus semua highlight di satu halaman.
 - Highlight disimpan ke PDF dengan *blend mode multiply*, sehingga teks di bawahnya tetap jelas terbaca.
 
-### 4. PDF → Markdown (OCR)
-- Ubah halaman PDF — termasuk **PDF hasil scan** — menjadi **Markdown** dengan model [Unlimited-OCR 2](https://github.com/baidu/Unlimited-OCR) dari Baidu.
-- Mengenali **judul bertingkat**, paragraf, **tabel** (sebagai HTML, tabel lintas halaman digabung otomatis), rumus, dan **gambar/grafik** (dipotong otomatis dari halaman).
-- Pilih halaman: semua, yang terpilih di tab *Gabung & Atur*, atau rentang (mis. `1-3, 5`).
-- Pilihan mode model (*Otomatis*, *Gundam*, *Base*), resolusi render, dan jumlah halaman per permintaan.
-- Lihat hasil sebagai **Pratinjau**, sunting **Markdown**-nya, atau periksa keluaran **Mentah** model; lalu **Salin** atau **Unduh .md** (gambar bisa disisipkan langsung ke dalam berkas).
-- Model dijalankan oleh **server OCR lokal** (`ocr-server/server.py`) di komputer Anda sendiri — lihat [Menjalankan Server OCR](#menjalankan-server-ocr).
-
 ### Lainnya
-- Tempat unggah tersedia di **setiap tab**; semua fitur bekerja pada dokumen yang sama.
+- Tempat unggah tersedia di **setiap tab**; ketiga fitur bekerja pada dokumen yang sama.
 - Navigasi halaman dengan tombol **← →**, serta perbesar/perkecil tampilan.
 - Mendukung **mode gelap** otomatis dan tampilan **responsif** untuk ponsel.
 
@@ -94,45 +85,6 @@ Lalu buka <http://localhost:8765> di browser.
 
 ---
 
-## Menjalankan Server OCR
-
-Fitur **PDF → Markdown** membutuhkan model Unlimited-OCR 2 (3 miliar parameter, ±6,7 GB) yang berjalan di komputer dengan **GPU NVIDIA**. Browser merender halaman menjadi gambar lalu mengirimkannya ke server lokal ini; konversi keluaran model ke Markdown dilakukan di browser.
-
-**1. Pasang PyTorch versi CUDA** sesuai GPU Anda dari <https://pytorch.org/get-started/locally/> (RTX seri 50xx membutuhkan build CUDA 12.8 atau lebih baru), misalnya:
-
-```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-```
-
-**2. Pasang dependensi lainnya:**
-
-```bash
-pip install -r ocr-server/requirements.txt
-```
-
-**3. Jalankan server** (unduhan model ±6,7 GB dari Hugging Face terjadi saat pertama kali):
-
-```bash
-python ocr-server/server.py
-```
-
-Di Windows, cukup klik dua kali **`ocr-server/Jalankan-Server-OCR.bat`** (memakai lingkungan Python di `%USERPROFILE%\.venvs\unlimited-ocr`). Panduan langkah demi langkah ada di [`PANDUAN-OCR.md`](PANDUAN-OCR.md).
-
-Server berjalan di `http://127.0.0.1:8000`. Buka tab **PDF → Markdown**, klik **Cek koneksi**, lalu **Mulai OCR**.
-
-| Pilihan | Kegunaan |
-|---|---|
-| `--backend transformers` | (bawaan) memuat model langsung di GPU. Bobot bf16 ±6,7 GB, jadi GPU 8 GB berada di batas minimum — gunakan 1 halaman per permintaan dan mode *Base* bila kehabisan memori. |
-| `--backend sglang --sglang-url http://host:10000` | meneruskan ke server SGLang resmi (Linux, GPU besar) sesuai [README Unlimited-OCR](https://github.com/baidu/Unlimited-OCR). Cocok untuk dokumen panjang. |
-| `--backend demo` | tanpa model dan tanpa GPU — mengembalikan contoh keluaran untuk mencoba antarmuka. |
-| `--host`, `--port` | alamat server (bawaan `127.0.0.1:8000`). Isi alamat yang sama di kolom *Alamat server* pada aplikasi. |
-| `--model` | ID model Hugging Face atau folder lokal (bawaan `baidu/Unlimited-OCR-2`). |
-| `--verbose` | tampilkan log debug bawaan kode model (`[PageRope]`, `[DASH]`, …). Tanpa opsi ini log disembunyikan agar jendela server tetap ringkas. |
-
-> Server dapat dijalankan di komputer lain (mis. server lab ber-GPU) dengan `--host 0.0.0.0`; isi alamat IP komputer tersebut di aplikasi. Lakukan ini hanya di jaringan yang tepercaya.
-
----
-
 ## Panduan Penggunaan
 
 1. **Unggah berkas** — klik kotak unggah atau seret berkas PDF/gambar ke halaman.
@@ -140,7 +92,6 @@ Server berjalan di `http://127.0.0.1:8000`. Buka tab **PDF → Markdown**, klik 
 3. **Tanda tangani** di tab *Tanda Tangan*: buat tanda tangan, klik untuk menempel, lalu geser ke posisi yang diinginkan.
 4. **Beri highlight** di tab *Highlight*: pilih warna dan mode, lalu tandai teks.
 5. **Unduh** — isi nama berkas di pojok kanan atas, lalu klik **Unduh PDF**.
-6. **Ubah ke Markdown** di tab *PDF → Markdown*: jalankan server OCR, pilih halaman, klik **Mulai OCR**, lalu unduh berkas `.md`.
 
 > **Tips:** Pada mode *Blok teks*, mulailah menyeret tepat di atas tulisan, bukan di area kosong di sampingnya.
 
@@ -153,9 +104,6 @@ Server berjalan di `http://127.0.0.1:8000`. Buka tab **PDF → Markdown**, klik 
 | [pdf-lib](https://pdf-lib.js.org/) | 1.17.1 | Membuat, menggabungkan, dan menyunting PDF |
 | [PDF.js](https://mozilla.github.io/pdf.js/) | 3.11.174 | Menampilkan halaman PDF dan lapisan teks |
 | [node-forge](https://github.com/digitalbazaar/forge) | 1.3.1 | Membaca sertifikat PKCS#12 dan membuat tanda tangan PKCS#7 |
-| [marked](https://marked.js.org/) | 12.0.2 | Menampilkan pratinjau Markdown hasil OCR |
-| [DOMPurify](https://github.com/cure53/DOMPurify) | 3.1.6 | Membersihkan HTML pratinjau |
-| [Unlimited-OCR 2](https://github.com/baidu/Unlimited-OCR) | — | Model OCR dokumen (MIT); logika konversi ke Markdown di-*port* dari `utils/process_unlimitedOCR2.py` |
 
 Antarmuka dibangun dengan HTML, CSS, dan JavaScript murni tanpa *framework*.
 
@@ -163,7 +111,7 @@ Antarmuka dibangun dengan HTML, CSS, dan JavaScript murni tanpa *framework*.
 
 ## Privasi & Keamanan
 
-- **Tidak ada berkas yang dikirim ke server pihak ketiga.** Seluruh proses berlangsung di browser, kecuali fitur OCR yang mengirim gambar halaman **hanya ke alamat server OCR yang Anda isi** (bawaan: komputer Anda sendiri, `127.0.0.1`).
+- **Tidak ada berkas yang dikirim ke server.** Seluruh proses berlangsung di browser.
 - Satu-satunya data yang disimpan adalah tanda tangan tersimpan dan pilihan warna highlight, di `localStorage` browser Anda sendiri.
 - Kata sandi dan kunci privat sertifikat hanya berada di memori selama halaman terbuka dan tidak pernah disimpan.
 
@@ -176,7 +124,6 @@ Antarmuka dibangun dengan HTML, CSS, dan JavaScript murni tanpa *framework*.
 - PDF yang terkunci kata sandi tidak dapat dibuka.
 - Tanda tangan digital hanya mendukung sertifikat **RSA**. Sertifikat uji coba akan ditampilkan sebagai "identitas tidak dikenal" oleh Adobe Reader.
 - Mode *Blok teks* hanya bekerja pada PDF yang memiliki lapisan teks; untuk PDF hasil scan gunakan mode *Kotak*.
-- OCR membutuhkan GPU NVIDIA (model tidak berjalan di CPU). Keluaran model bisa keliru — periksa kembali hasil Markdown sebelum digunakan.
 
 ---
 
@@ -185,11 +132,6 @@ Antarmuka dibangun dengan HTML, CSS, dan JavaScript murni tanpa *framework*.
 ```
 PDF-Combine/
 ├── index.html   # Seluruh aplikasi (HTML, CSS, JavaScript)
-├── ocr-server/
-│   ├── server.py         # Server OCR lokal (Unlimited-OCR 2)
-│   ├── Jalankan-Server-OCR.bat  # Peluncur sekali klik (Windows)
-│   └── requirements.txt  # Dependensi Python server OCR
-├── PANDUAN-OCR.md  # Panduan pemakaian fitur OCR
 ├── LICENSE      # Lisensi MIT
 └── README.md
 ```
